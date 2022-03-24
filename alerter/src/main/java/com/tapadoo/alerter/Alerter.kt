@@ -829,7 +829,6 @@ class Alerter private constructor() {
             for (i in 0..decorView.childCount) {
                 val childView = if (decorView.getChildAt(i) is Alert) decorView.getChildAt(i) as Alert else null
                 if (childView != null && childView.windowToken != null) {
-                    ViewCompat.animate(childView).alpha(0f).withEndAction(getRemoveViewRunnable(childView, listener))
                     if (animate) {
                         ViewCompat.animate(childView).alpha(0f).withEndAction(getRemoveViewRunnable(childView, listener))
                     } else {
