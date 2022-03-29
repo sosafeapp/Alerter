@@ -789,13 +789,13 @@ class Alerter private constructor() {
          */
         @JvmStatic
         @JvmOverloads
-        fun clearCurrent(activity: Activity?, dialog: Dialog?, listener: OnHideAlertListener? = null) {
+        fun clearCurrent(activity: Activity?, dialog: Dialog?, animate: Boolean = true, listener: OnHideAlertListener? = null) {
             dialog?.let {
                 it.window?.decorView as? ViewGroup
             } ?: kotlin.run {
                 activity?.window?.decorView as? ViewGroup
             }?.also {
-                removeAlertFromParent(it, listener)
+                removeAlertFromParent(it, listener, animate)
             } ?: listener?.onHide()
         }
 
@@ -808,8 +808,8 @@ class Alerter private constructor() {
          */
         @JvmStatic
         @JvmOverloads
-        fun clearCurrent(activity: Activity?, listener: OnHideAlertListener? = null) {
-            clearCurrent(activity, null, listener)
+        fun clearCurrent(activity: Activity?, animate: Boolean = true, listener: OnHideAlertListener? = null) {
+            clearCurrent(activity, null, animate, listener)
         }
 
         /**
@@ -818,18 +818,22 @@ class Alerter private constructor() {
          */
         @JvmStatic
         @JvmOverloads
-        fun hide(listener: OnHideAlertListener? = null) {
+        fun hide(animate: Boolean = true, listener: OnHideAlertListener? = null) {
             decorView?.get()?.let {
-                removeAlertFromParent(it, listener)
+                removeAlertFromParent(it, listener, animate)
             } ?: listener?.onHide()
         }
 
-        private fun removeAlertFromParent(decorView: ViewGroup, listener: OnHideAlertListener?) {
+        private fun removeAlertFromParent(decorView: ViewGroup, listener: OnHideAlertListener?, animate: Boolean) {
             //Find all Alert Views in Parent layout
             for (i in 0..decorView.childCount) {
                 val childView = if (decorView.getChildAt(i) is Alert) decorView.getChildAt(i) as Alert else null
                 if (childView != null && childView.windowToken != null) {
-                    ViewCompat.animate(childView).alpha(0f).withEndAction(getRemoveViewRunnable(childView, listener))
+                    if (animate) {
+                        ViewCompat.animate(childView).alpha(0f).withEndAction(getRemoveViewRunnable(childView, listener))
+                    } else {
+                        getRemoveViewRunnable(childView, listener).run()
+                    }
                 }
             }
         }
