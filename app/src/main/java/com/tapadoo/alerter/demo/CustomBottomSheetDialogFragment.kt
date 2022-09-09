@@ -7,28 +7,30 @@ import android.view.View
 import android.view.ViewGroup
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.tapadoo.alerter.Alerter
-import kotlinx.android.synthetic.main.layout_modal_bottom_sheet.btnAlertColoured
-import kotlinx.android.synthetic.main.layout_modal_bottom_sheet.btnAlertCustomIcon
-import kotlinx.android.synthetic.main.layout_modal_bottom_sheet.btnAlertDefault
+import com.tapadoo.alerter.demo.databinding.LayoutModalBottomSheetBinding
 
 class CustomBottomSheetDialogFragment : BottomSheetDialogFragment() {
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        return inflater.inflate(R.layout.layout_modal_bottom_sheet, container, false)
+    private var _binding: LayoutModalBottomSheetBinding? = null
+    private val binding: LayoutModalBottomSheetBinding get() = requireNotNull(_binding)
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+        _binding = LayoutModalBottomSheetBinding.inflate(inflater, container, false)
+        return binding.root
     }
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
 
-        btnAlertDefault.setOnClickListener {
+        binding.btnAlertDefault.setOnClickListener {
             //handle click event
             showAlertDefault(dialog)
         }
-        btnAlertColoured.setOnClickListener {
+        binding.btnAlertColoured.setOnClickListener {
             //handle click event
             showAlertColoured(dialog)
         }
-        btnAlertCustomIcon.setOnClickListener {
+        binding.btnAlertCustomIcon.setOnClickListener {
             //handle click event
             showAlertWithIcon(dialog)
         }
@@ -62,6 +64,11 @@ class CustomBottomSheetDialogFragment : BottomSheetDialogFragment() {
                     .setIconSize(R.dimen.custom_icon_size) // Optional - default is 38dp
                     .show()
         }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 
 }
