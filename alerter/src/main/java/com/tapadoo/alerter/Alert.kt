@@ -18,7 +18,10 @@ import android.view.animation.Animation
 import android.view.animation.AnimationUtils
 import android.widget.Button
 import android.widget.FrameLayout
+import android.widget.FrameLayout.LayoutParams.UNSPECIFIED_GRAVITY
+import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.annotation.*
 import androidx.appcompat.content.res.AppCompatResources
@@ -26,11 +29,10 @@ import androidx.appcompat.view.ContextThemeWrapper
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.widget.TextViewCompat
+import com.tapadoo.alerter.databinding.AlerterAlertViewBinding
 import com.tapadoo.alerter.utils.getDimenPixelSize
 import com.tapadoo.alerter.utils.getRippleDrawable
 import com.tapadoo.alerter.utils.notchHeight
-import kotlinx.android.synthetic.main.alerter_alert_default_layout.view.*
-import kotlinx.android.synthetic.main.alerter_alert_view.view.*
 
 /**
  * Custom Alert View
@@ -39,17 +41,32 @@ import kotlinx.android.synthetic.main.alerter_alert_view.view.*
  * @since 26/01/2016
  */
 @SuppressLint("ViewConstructor")
-class Alert @JvmOverloads constructor(context: Context,
-                                      @LayoutRes layoutId: Int,
-                                      attrs: AttributeSet? = null,
-                                      defStyle: Int = 0)
-    : FrameLayout(context, attrs, defStyle), View.OnClickListener, Animation.AnimationListener, SwipeDismissTouchListener.DismissCallbacks {
+class Alert @JvmOverloads constructor(
+    context: Context,
+    @LayoutRes layoutId: Int,
+    attrs: AttributeSet? = null,
+    defStyle: Int = 0
+) : FrameLayout(context, attrs, defStyle), View.OnClickListener, Animation.AnimationListener,
+    SwipeDismissTouchListener.DismissCallbacks {
+
+    private var _binding: AlerterAlertViewBinding? = null
+
+    // alerter_alert_default_layout.xml views
+    private val tvText by lazy { findViewById<TextView>(R.id.tvText) }
+    private val tvTitle by lazy { findViewById<TextView>(R.id.tvTitle) }
+    private val ivIcon by lazy { findViewById<ImageView>(R.id.ivIcon) }
+    private val ivRightIcon by lazy { findViewById<ImageView>(R.id.ivRightIcon) }
+    private val flIconContainer by lazy { findViewById<FrameLayout>(R.id.flIconContainer) }
+    private val pbProgress by lazy { findViewById<ProgressBar>(R.id.pbProgress) }
+    private val flRightIconContainer by lazy { findViewById<FrameLayout>(R.id.flRightIconContainer) }
 
     private var onShowListener: OnShowAlertListener? = null
     internal var onHideListener: OnHideAlertListener? = null
 
-    internal var enterAnimation: Animation = AnimationUtils.loadAnimation(context, R.anim.alerter_slide_in_from_top)
-    internal var exitAnimation: Animation = AnimationUtils.loadAnimation(context, R.anim.alerter_slide_out_to_top)
+    internal var enterAnimation: Animation =
+        AnimationUtils.loadAnimation(context, R.anim.alerter_slide_in_from_top)
+    internal var exitAnimation: Animation =
+        AnimationUtils.loadAnimation(context, R.anim.alerter_slide_out_to_top)
 
     internal var duration = DISPLAY_TIME_IN_SECONDS
 
@@ -93,8 +110,14 @@ class Alert @JvmOverloads constructor(context: Context,
         set(value) {
 
             if (value != Gravity.TOP) {
-                enterAnimation = AnimationUtils.loadAnimation(context, R.anim.alerter_slide_in_from_bottom)
-                exitAnimation = AnimationUtils.loadAnimation(context, R.anim.alerter_slide_out_to_bottom)
+                enterAnimation = AnimationUtils.loadAnimation(
+                    context,
+                    R.anim.alerter_slide_in_from_bottom
+                )
+                exitAnimation = AnimationUtils.loadAnimation(
+                    context,
+                    R.anim.alerter_slide_out_to_bottom
+                )
             }
 
             field = value
@@ -106,7 +129,7 @@ class Alert @JvmOverloads constructor(context: Context,
      * @param contentGravity Gravity of the Alert
      */
     var contentGravity: Int
-        get() = (llAlertBackground?.layoutParams as LayoutParams).gravity
+        get() = (_binding?.llAlertBackground?.layoutParams as? LayoutParams)?.gravity ?: UNSPECIFIED_GRAVITY
         set(contentGravity) {
 
             (tvTitle?.layoutParams as? LinearLayout.LayoutParams)?.apply {
@@ -118,7 +141,7 @@ class Alert @JvmOverloads constructor(context: Context,
             tvText?.layoutParams = paramsText
         }
 
-    val layoutContainer: View? by lazy { findViewById<View>(R.id.vAlertContentContainer) }
+    val layoutContainer: View? by lazy { _binding?.vAlertContentContainer }
 
     private val currentDisplay: Display? by lazy {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -153,22 +176,23 @@ class Alert @JvmOverloads constructor(context: Context,
     }
 
     init {
-        inflate(context, R.layout.alerter_alert_view, this)
+        _binding = AlerterAlertViewBinding.inflate(LayoutInflater.from(context), this, true)
+        val binding = requireNotNull(_binding)
 
-        vAlertContentContainer.layoutResource = layoutId
-        vAlertContentContainer.inflate()
+        binding.vAlertContentContainer.layoutResource = layoutId
+        binding.vAlertContentContainer.inflate()
 
         isHapticFeedbackEnabled = true
 
         ViewCompat.setTranslationZ(this, Integer.MAX_VALUE.toFloat())
 
-        llAlertBackground.setOnClickListener(this)
+        binding.llAlertBackground.setOnClickListener(this)
     }
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
 
-        llAlertBackground.apply {
+        _binding?.llAlertBackground?.apply {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 foreground = if (enableClickAnimation.not()) {
                     null
@@ -181,8 +205,8 @@ class Alert @JvmOverloads constructor(context: Context,
 
             if (layoutGravity != Gravity.TOP) {
                 setPadding(
-                        paddingLeft, getDimenPixelSize(R.dimen.alerter_padding_default),
-                        paddingRight, getDimenPixelSize(R.dimen.alerter_alert_padding)
+                    paddingLeft, getDimenPixelSize(R.dimen.alerter_padding_default),
+                    paddingRight, getDimenPixelSize(R.dimen.alerter_alert_padding)
                 )
             }
         }
@@ -201,7 +225,7 @@ class Alert @JvmOverloads constructor(context: Context,
         // Add all buttons
         buttons.forEach { button ->
             buttonTypeFace?.let { button.typeface = it }
-            llButtonContainer.addView(button)
+            _binding?.llButtonContainer?.addView(button)
         }
     }
 
@@ -210,12 +234,18 @@ class Alert @JvmOverloads constructor(context: Context,
             marginSet = true
 
             // Add a negative top margin to compensate for overshoot enter animation
-            (layoutParams as MarginLayoutParams).topMargin = getDimenPixelSize(R.dimen.alerter_alert_negative_margin_top)
+            (layoutParams as MarginLayoutParams).topMargin =
+                getDimenPixelSize(R.dimen.alerter_alert_negative_margin_top)
 
             // Check for Cutout
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                llAlertBackground.apply {
-                    setPadding(paddingLeft, paddingTop + (notchHeight() / 2), paddingRight, paddingBottom)
+                _binding?.llAlertBackground.apply {
+                    setPadding(
+                        paddingLeft,
+                        paddingTop + (notchHeight() / 2),
+                        paddingRight,
+                        paddingBottom
+                    )
                 }
             }
         }
@@ -245,7 +275,7 @@ class Alert @JvmOverloads constructor(context: Context,
     }
 
     override fun setOnClickListener(listener: OnClickListener?) {
-        llAlertBackground.setOnClickListener(listener)
+        _binding?.llAlertBackground?.setOnClickListener(listener)
     }
 
     override fun setVisibility(visibility: Int) {
@@ -302,7 +332,6 @@ class Alert @JvmOverloads constructor(context: Context,
         startHideAnimation()
     }
 
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
     private fun startHideAnimation() {
         //Start the Handler to clean up the Alert
         if (!enableInfiniteDuration) {
@@ -325,8 +354,8 @@ class Alert @JvmOverloads constructor(context: Context,
         try {
             exitAnimation.setAnimationListener(object : Animation.AnimationListener {
                 override fun onAnimationStart(animation: Animation) {
-                    llAlertBackground?.setOnClickListener(null)
-                    llAlertBackground?.isClickable = false
+                    _binding?.llAlertBackground?.setOnClickListener(null)
+                    _binding?.llAlertBackground?.isClickable = false
                 }
 
                 override fun onAnimationEnd(animation: Animation) {
@@ -378,7 +407,7 @@ class Alert @JvmOverloads constructor(context: Context,
      * @param color The qualified colour integer
      */
     fun setAlertBackgroundColor(@ColorInt color: Int) {
-        llAlertBackground.setBackgroundColor(color)
+        _binding?.llAlertBackground?.setBackgroundColor(color)
     }
 
     /**
@@ -387,7 +416,7 @@ class Alert @JvmOverloads constructor(context: Context,
      * @param resource The qualified drawable integer
      */
     fun setAlertBackgroundResource(@DrawableRes resource: Int) {
-        llAlertBackground.setBackgroundResource(resource)
+        _binding?.llAlertBackground?.setBackgroundResource(resource)
     }
 
     /**
@@ -396,7 +425,8 @@ class Alert @JvmOverloads constructor(context: Context,
      * @param drawable The qualified drawable
      */
     fun setAlertBackgroundDrawable(drawable: Drawable) {
-        ViewCompat.setBackground(llAlertBackground, drawable)
+        val linearLayout = _binding?.llAlertBackground ?: return
+        ViewCompat.setBackground(linearLayout, drawable)
     }
 
     /**
@@ -421,7 +451,7 @@ class Alert @JvmOverloads constructor(context: Context,
      * Disable touches while the Alert is showing
      */
     fun disableOutsideTouch() {
-        flClickShield.isClickable = true
+        _binding?.flClickShield?.isClickable = true
     }
 
     /**
@@ -715,20 +745,24 @@ class Alert @JvmOverloads constructor(context: Context,
      * Set whether to enable swipe to dismiss or not
      */
     fun enableSwipeToDismiss() {
-        llAlertBackground.let {
-            it.setOnTouchListener(SwipeDismissTouchListener(it, object : SwipeDismissTouchListener.DismissCallbacks {
-                override fun canDismiss(): Boolean {
-                    return true
-                }
+        _binding?.llAlertBackground?.let {
+            it.setOnTouchListener(
+                SwipeDismissTouchListener(
+                    it,
+                    object : SwipeDismissTouchListener.DismissCallbacks {
+                        override fun canDismiss(): Boolean {
+                            return true
+                        }
 
-                override fun onDismiss(view: View) {
-                    removeFromParent()
-                }
+                        override fun onDismiss(view: View) {
+                            removeFromParent()
+                        }
 
-                override fun onTouch(view: View, touch: Boolean) {
-                    // Ignore
-                }
-            }))
+                        override fun onTouch(view: View, touch: Boolean) {
+                            // Ignore
+                        }
+                    })
+            )
         }
     }
 
@@ -822,7 +856,7 @@ class Alert @JvmOverloads constructor(context: Context,
      */
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     fun setBackgroundElevation(elevation: Float) {
-        llAlertBackground.elevation = elevation
+        _binding?.llAlertBackground?.elevation = elevation
     }
 
     /**
@@ -840,8 +874,13 @@ class Alert @JvmOverloads constructor(context: Context,
         }
 
         // Alter padding
-        llAlertBackground?.apply {
-            this.setPadding(this.paddingLeft, this.paddingTop, this.paddingRight, this.paddingBottom / 2)
+        _binding?.llAlertBackground?.apply {
+            this.setPadding(
+                this.paddingLeft,
+                this.paddingTop,
+                this.paddingRight,
+                this.paddingBottom / 2
+            )
         }
     }
 
@@ -864,7 +903,8 @@ class Alert @JvmOverloads constructor(context: Context,
     }
 
     override fun onDismiss(view: View) {
-        flClickShield?.removeView(llAlertBackground)
+        val binding = _binding ?: return
+        binding.flClickShield.removeView(binding.llAlertBackground)
     }
 
     override fun onTouch(view: View, touch: Boolean) {

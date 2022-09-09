@@ -1,6 +1,5 @@
 package com.tapadoo.alerter.utils
 
-import android.app.Activity
 import android.content.Context
 import android.graphics.drawable.Drawable
 import android.os.Build
